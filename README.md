@@ -15,7 +15,7 @@ Caused by:
   Error: Custom { kind: NotFound, error: "Could not find `protoc`. If `protoc` is installed, try setting the `PROTOC` environment variable to the path of the `protoc` binary. To install it on Debian, run `apt-get install protobuf-compiler`. It is also available at https://github.com/protocolbuffers/protobuf/releases  For more information: https://docs.rs/prost-build/#sourcing-protoc" }
 ```
 
-An alternative is the [protobuf-src crate](https://crates.io/crates/protobuf-src), which compiles protoc from source. Unfortunately, compiling protoc is quite slow time (approximately 2 minutes on my 2020 4 core Intel Linux desktop), and has more dependencies. Notably: `protobuf-src` requires `cmake` and a C++ compiler.
+An alternative is the [protobuf-src crate](https://crates.io/crates/protobuf-src), which compiles protoc from source. Unfortunately, compiling protoc is quite slow (approximately 2 minutes on my 4 core Intel desktop from 2020), and has more dependencies. Notably: `protobuf-src` requires `cmake` and a C++ compiler.
 
 
 ## Quick Start
@@ -29,6 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 ```
+
+For a complete example, see [protoc-cargo-example-rs](https://github.com/evanj/protoc-cargo-example-rs).
 
 
 ## Trust/Security
