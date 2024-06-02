@@ -1,7 +1,24 @@
 [package]
-name = "dlprotoc"
-version = "0.1.0"
 edition = "2021"
+name = "dlprotoc"
+# The version is the crate version + protoc version
+version = "0.1.0+27.0"
+description = "Downloads protoc Protocol Buffers compiler for Cargo builds"
+homepage = "https://github.com/evanj/dlprotoc-rs"
+readme = "README.md"
+keywords = [
+    "protobuf",
+    "serialization",
+    "protoc",
+    "prost",
+    "tonic",
+]
+categories = [
+    "development-tools::build-utils",
+    "encoding",
+]
+license = "MIT"
+repository = "https://github.com/evanj/dlprotoc-rs"
 
 [dependencies]
 # attempt to shrink dependencies a bit
