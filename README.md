@@ -1,5 +1,8 @@
 # dlprotoc: Download protoc for Cargo build scripts
 
+[![Crates.io Version](https://img.shields.io/crates/v/dlprotoc)](https://crates.io/crates/dlprotoc)
+[![Docs.rs Link](https://img.shields.io/docsrs/dlprotoc)](https://docs.rs/dlprotoc/latest/dlprotoc/)
+
 This crate downloads the
 [official binary releases of protoc from Google's protobuf Github repo](https://github.com/protocolbuffers/protobuf),
 verifies a SHA256 hash, then extracts it. It easy to use with Prost or Tonic.
