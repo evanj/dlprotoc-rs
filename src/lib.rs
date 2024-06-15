@@ -7,7 +7,7 @@ use zip::result::ZipError;
 use sha2::{Digest, Sha256};
 
 // The most recent version of protoc that we know about.
-const LATEST_VERSION: &str = "27.0";
+const LATEST_VERSION: &str = "27.1";
 
 /// Operating system used to run protoc. The Display trait returns the string used for protoc URLs.
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -189,7 +189,7 @@ struct KnownVersion {
     hash: Sha256HashResult,
 }
 
-static KNOWN_VERSIONS: [KnownVersion; 4] = [
+static KNOWN_VERSIONS: [KnownVersion; 8] = [
     KnownVersion {
         os: OS::Linux,
         cpu: CPUArch::X86_64,
@@ -213,6 +213,30 @@ static KNOWN_VERSIONS: [KnownVersion; 4] = [
         cpu: CPUArch::AArch64,
         version: "27.0",
         hash: hex!("2cf59e3e3463bede1f10b7517efdddd97a3bd8cfd9cacc286407b657290dc781"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::AArch64,
+        version: "27.1",
+        hash: hex!("8809c2ec85368c6b6e9af161b6771a153aa92670a24adbe46dd34fa02a04df2f"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::X86_64,
+        version: "27.1",
+        hash: hex!("8970e3d8bbd67d53768fe8c2e3971bdd71e51cfe2001ca06dacad17258a7dae3"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::AArch64,
+        version: "27.1",
+        hash: hex!("03b7af1bf469e7285dc51976ee5fa99412704dbd1c017105114852a37b165c12"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::X86_64,
+        version: "27.1",
+        hash: hex!("8520d944f3a3890fa296a3b3b0d4bb18337337e2526bbbf1b507eeea3c2a1ec4"),
     },
 ];
 
