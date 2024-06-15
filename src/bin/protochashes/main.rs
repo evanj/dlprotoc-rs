@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let bytes = download_unverified(*os, *cpu, version)?;
             let hash = protoc_hash(&bytes);
 
-            println!("SpecificVersion {{");
+            println!("KnownVersion {{");
             println!("    os: OS::{},", os.rust_identifier());
             println!("    cpu: CPUArch::{},", cpu.code_label());
             println!("    version: {version:#?},");
