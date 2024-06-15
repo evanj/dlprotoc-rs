@@ -1,22 +1,13 @@
 //! Download protoc for Cargo build scripts.
 
 use hex_literal::hex;
-use std::{
-    borrow::Borrow,
-    fmt::Display,
-    fs,
-    io::{Cursor, Read},
-    os::unix::fs::PermissionsExt,
-    path::Path,
-};
+use std::{borrow::Borrow, fmt::Display, io::Cursor, path::Path};
 use zip::result::ZipError;
 
 use sha2::{Digest, Sha256};
 
 // The most recent version of protoc that we know about.
 const LATEST_VERSION: &str = "27.0";
-
-const PROTOC_ZIP_PATH: &str = "bin/protoc";
 
 /// Operating system used to run protoc. The Display trait returns the string used for protoc URLs.
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -30,6 +21,9 @@ pub enum OS {
 
 impl OS {
     /// Returns the operating system executing this function.
+    ///
+    /// # Panics
+    /// If this is run on an unsupported operating system.
     #[must_use]
     pub fn current() -> Self {
         match std::env::consts::OS {
@@ -78,6 +72,9 @@ pub enum CPUArch {
 
 impl CPUArch {
     /// Returns the CPU architecture executing this function.
+    ///
+    /// # Panics
+    /// If run on an unsupported architecture.
     #[must_use]
     pub fn current() -> Self {
         match std::env::consts::ARCH {
@@ -169,6 +166,10 @@ impl From<reqwest::Error> for Error {
 
 /// Downloads the protoc binary without verifying the hash. This should only be used by the dlprotoc
 /// crate, and by the `protochashes` tool.
+///
+/// # Errors
+///
+/// Returns an error if it fails to fetch protoc over the Internet.
 pub fn download_unverified(os: OS, cpu: CPUArch, version: &str) -> Result<Vec<u8>, Error> {
     let url = make_url(os, cpu, version);
     let response = reqwest::blocking::get(url)?.error_for_status()?;
@@ -255,48 +256,55 @@ pub fn protoc_hash(data: &[u8]) -> [u8; 32] {
     result
 }
 
-fn write_protoc(destination: &Path) -> Result<(), Error> {
+fn write_protoc(destination_dir: &Path) -> Result<(), Error> {
     // downloads protoc for the current platform, checking the hashes
     let protoc_zip_bytes = fetch_current()?;
 
-    write_protoc_zip_data(destination, &protoc_zip_bytes)
+    write_protoc_zip_data(destination_dir, &protoc_zip_bytes)
 }
 
 /// Downloads protoc binary to the `OUT_DIR` environment variable and sets the `PROTOC` environment
 /// variable so prost/tonic can find it. Intended to be used from a Cargo build script (`build.rs`).
+///
+/// # Errors
+///
+/// Returns an error if it fails to fetch protoc over the Internet, fails to verify it, or fails to
+/// unzip it.
 pub fn download_protoc() -> Result<(), Error> {
     let out_dir = std::env::var("OUT_DIR").map_err(|e| Error::with_prefix("env", e))?;
-    let protoc_bin_path = Path::new(&out_dir).join("protoc");
-    if protoc_bin_path.exists() {
-        print!("dlprotoc: not downloading; protoc already exists at {protoc_bin_path:?}");
+    let protoc_distribution_path = Path::new(&out_dir).join("protoc_zip");
+    if protoc_distribution_path.exists() {
+        print!("dlprotoc: not downloading; protoc already exists at {protoc_distribution_path:?}");
     } else {
-        write_protoc(&protoc_bin_path)?;
+        write_protoc(&protoc_distribution_path)?;
     }
 
-    std::env::set_var("PROTOC", &protoc_bin_path);
+    std::env::set_var("PROTOC", &protoc_distribution_path);
 
     Ok(())
 }
 
-/// Extracts the protoc binary from in-memory Zip data. This makes it easier to test the code
-/// without downloading anything.
-fn write_protoc_zip_data(destination: &Path, protoc_zip_bytes: &[u8]) -> Result<(), Error> {
+/// Extracts files from the protoc distribution Zip data into `destination_dir`. This makes it
+/// easier to test the code without downloading anything.
+fn write_protoc_zip_data(destination_dir: &Path, protoc_zip_bytes: &[u8]) -> Result<(), Error> {
     let mut zip = zip::ZipArchive::new(Cursor::new(&protoc_zip_bytes))?;
-    let mut protoc_f = zip.by_name(PROTOC_ZIP_PATH)?;
-    let mut protoc_bytes = Vec::new();
-    protoc_f.read_to_end(&mut protoc_bytes)?;
+    zip.extract(destination_dir)?;
+    // let mut protoc_f = zip.by_name(PROTOC_ZIP_PATH)?;
+    // let mut protoc_bytes = Vec::new();
+    // protoc_f.read_to_end(&mut protoc_bytes)?;
 
-    fs::write(destination, &protoc_bytes)?;
+    // fs::write(destination_dir, &protoc_bytes)?;
 
-    // make protoc executable
-    fs::set_permissions(destination, fs::Permissions::from_mode(0o755))?;
+    // // make protoc executable
+    // fs::set_permissions(destination_dir, fs::Permissions::from_mode(0o755))?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{io::Write, process::Command};
+    use std::{io::Write, path::PathBuf, process::Command};
 
+    use tempfile::TempDir;
     use zip::{write::SimpleFileOptions, ZipWriter};
 
     use super::*;
@@ -312,10 +320,42 @@ mod tests {
 
     #[test]
     #[ignore = "requires network access"]
-    fn test_write_protoc_real_network_access() {
+    fn test_write_protoc_real_network_access() -> Result<(), std::io::Error> {
         // actually downloads from the real URL
         // TODO: run a fake web server to test more stuff?
-        check_write_protoc(write_protoc);
+        let protoc_temp = check_write_protoc(write_protoc);
+
+        let well_known_types_protobuf_path = protoc_temp.tempdir.path().join("foo.proto");
+        std::fs::write(
+            &well_known_types_protobuf_path,
+            br#"syntax = "proto3";
+package examplepb;
+import "google/protobuf/duration.proto";
+message M {
+    google.protobuf.Duration example_duration = 1;
+}
+"#,
+        )?;
+
+        // run protoc to compile the test proto file
+        let output = Command::new(&protoc_temp.protoc_path)
+            .arg(&well_known_types_protobuf_path)
+            .arg(format!(
+                "--proto_path={}",
+                protoc_temp.tempdir.path().display()
+            ))
+            .arg("--descriptor_set_out=/dev/null")
+            .output()
+            .unwrap();
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            stdout.is_empty() && stderr.is_empty(),
+            "expected no output from protoc\nstdout: {stdout}\n stderr: {stderr}\n"
+        );
+
+        Ok(())
     }
 
     #[test]
@@ -329,30 +369,57 @@ mod tests {
     fn test_unpack_fetch_fake() {
         let mut zip_data = Vec::new();
         let mut zip_w = ZipWriter::new(Cursor::new(&mut zip_data));
-        zip_w
-            .start_file(PROTOC_ZIP_PATH, SimpleFileOptions::default())
-            .unwrap();
+        let exe_options = SimpleFileOptions::default().unix_permissions(0o755);
+        zip_w.start_file("bin/protoc", exe_options).unwrap();
         let script_contents = format!("#!/bin/sh\necho protoc fake version {LATEST_VERSION}\n");
         zip_w.write_all(script_contents.as_bytes()).unwrap();
+
+        zip_w
+            .start_file(
+                "include/google/protobuf/duration.proto",
+                SimpleFileOptions::default(),
+            )
+            .unwrap();
+        let fake_duration_proto = br#"syntax = "proto3";"#;
+        zip_w.write_all(fake_duration_proto).unwrap();
         zip_w.finish().unwrap();
 
         check_write_protoc(|destination| write_protoc_zip_data(destination, &zip_data));
     }
 
-    fn check_write_protoc(write_protoc_fn: impl Fn(&Path) -> Result<(), Error>) {
+    struct TempProtocResult {
+        tempdir: TempDir,
+        protoc_path: PathBuf,
+    }
+
+    fn check_write_protoc(
+        write_protoc_fn: impl Fn(&Path) -> Result<(), Error>,
+    ) -> TempProtocResult {
         let tempdir = tempfile::tempdir().unwrap();
-        let destination = tempdir.path().join("protoc");
+        let protoc_zip_dir_path = tempdir.path().join("protoc_zip");
 
-        write_protoc_fn(&destination).unwrap();
+        write_protoc_fn(&protoc_zip_dir_path).unwrap();
 
-        // run the resulting program
-        let output = Command::new(destination).arg("--version").output().unwrap();
+        // check that the include dir exists
+        assert!(protoc_zip_dir_path.join("include").is_dir());
+
+        // run protoc and make sure it "works"
+        let protoc_path = protoc_zip_dir_path.join("bin").join("protoc");
+        let output = Command::new(&protoc_path)
+            .arg("--version")
+            .output()
+            .unwrap();
         let version_output = String::from_utf8_lossy(&output.stdout);
         let expected_end = format!("{LATEST_VERSION}\n");
         assert!(
             version_output.ends_with(&expected_end),
             "unexpected version output: {version_output}"
         );
+
+        TempProtocResult {
+            tempdir,
+            protoc_path,
+        }
     }
 
     #[test]

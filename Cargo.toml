@@ -20,6 +20,14 @@ categories = [
 license = "MIT"
 repository = "https://github.com/evanj/dlprotoc-rs"
 
+[lints.clippy]
+nursery = "deny"
+pedantic = "deny"
+style = "deny"
+cargo = "deny"
+option-if-let-else =  { level = "allow", priority = 1 }
+multiple-crate-versions = { level = "allow", priority = 1 }
+
 [dependencies]
 # attempt to shrink dependencies a bit
 reqwest = { version = "0", features = ["blocking"] }
