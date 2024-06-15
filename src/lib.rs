@@ -9,6 +9,14 @@ use sha2::{Digest, Sha256};
 // The most recent version of protoc that we know about.
 const LATEST_VERSION: &str = "27.1";
 
+// Cargo's build output environment variable. See:
+// https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts
+const CARGO_BUILD_OUT_ENV_VAR: &str = "OUT_DIR";
+
+// Prost uses the PROTOC env var to find the protoc executable. See:
+// https://docs.rs/prost-build/latest/prost_build/#sourcing-protoc
+const PROST_PROTOC_ENV_VAR: &str = "PROTOC";
+
 /// Operating system used to run protoc. The Display trait returns the string used for protoc URLs.
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum OS {
@@ -295,7 +303,8 @@ fn write_protoc(destination_dir: &Path) -> Result<(), Error> {
 /// Returns an error if it fails to fetch protoc over the Internet, fails to verify it, or fails to
 /// unzip it.
 pub fn download_protoc() -> Result<(), Error> {
-    let out_dir = std::env::var("OUT_DIR").map_err(|e| Error::with_prefix("env", e))?;
+    let out_dir =
+        std::env::var(CARGO_BUILD_OUT_ENV_VAR).map_err(|e| Error::with_prefix("env", e))?;
     let protoc_distribution_path = Path::new(&out_dir).join("protoc_zip");
     if protoc_distribution_path.exists() {
         print!("dlprotoc: not downloading; protoc already exists at {protoc_distribution_path:?}");
@@ -303,7 +312,8 @@ pub fn download_protoc() -> Result<(), Error> {
         write_protoc(&protoc_distribution_path)?;
     }
 
-    std::env::set_var("PROTOC", &protoc_distribution_path);
+    let protoc_path = protoc_distribution_path.join("bin").join("protoc");
+    std::env::set_var(PROST_PROTOC_ENV_VAR, protoc_path);
 
     Ok(())
 }
@@ -326,9 +336,7 @@ fn write_protoc_zip_data(destination_dir: &Path, protoc_zip_bytes: &[u8]) -> Res
 
 #[cfg(test)]
 mod tests {
-    use std::{io::Write, path::PathBuf, process::Command};
-
-    use tempfile::TempDir;
+    use std::{ffi::OsStr, io::Write, process::Command};
     use zip::{write::SimpleFileOptions, ZipWriter};
 
     use super::*;
@@ -342,16 +350,48 @@ mod tests {
         assert_eq!(url, "https://github.com/protocolbuffers/protobuf/releases/download/v26.1/protoc-26.1-osx-aarch_64.zip");
     }
 
+    struct SetEnvForTest<'a> {
+        name: &'a str,
+        previous: Option<String>,
+    }
+
+    impl<'a> SetEnvForTest<'a> {
+        fn set(name: &'a str, value: impl AsRef<OsStr>) -> Result<Self, std::env::VarError> {
+            let previous = match std::env::var(name) {
+                Ok(value) => Some(value),
+                Err(std::env::VarError::NotPresent) => None,
+                Err(e) => return Err(e),
+            };
+            std::env::set_var(name, value);
+            Ok(Self { name, previous })
+        }
+    }
+
+    impl<'a> Drop for SetEnvForTest<'a> {
+        fn drop(&mut self) {
+            match &self.previous {
+                Some(value) => std::env::set_var(self.name, value),
+                None => std::env::remove_var(self.name),
+            }
+        }
+    }
+
+    // this tests actually downloads protoc and sets environment variables
+    // just like build scripts will. It is slow, so it is ignored by default.
     #[test]
     #[ignore = "requires network access"]
-    fn test_write_protoc_real_network_access() -> Result<(), std::io::Error> {
+    fn test_write_protoc_real_network_access() -> Result<(), Box<dyn std::error::Error>> {
         // actually downloads from the real URL
-        // TODO: run a fake web server to test more stuff?
-        let protoc_temp = check_write_protoc(write_protoc);
+        let tempdir = tempfile::tempdir()?;
+        // set the PROTOC env var to "" so it gets reset when the test ends
+        let reset_protoc_env_var = SetEnvForTest::set(PROST_PROTOC_ENV_VAR, "");
+        let reset_out_dir_env_var = SetEnvForTest::set(CARGO_BUILD_OUT_ENV_VAR, tempdir.path());
+        download_protoc()?;
+        drop(reset_out_dir_env_var);
 
-        let well_known_types_protobuf_path = protoc_temp.tempdir.path().join("foo.proto");
+        let example_proto_path = tempdir.path().join("foo.proto");
         std::fs::write(
-            &well_known_types_protobuf_path,
+            &example_proto_path,
             br#"syntax = "proto3";
 package examplepb;
 import "google/protobuf/duration.proto";
@@ -362,12 +402,10 @@ message M {
         )?;
 
         // run protoc to compile the test proto file
-        let output = Command::new(&protoc_temp.protoc_path)
-            .arg(&well_known_types_protobuf_path)
-            .arg(format!(
-                "--proto_path={}",
-                protoc_temp.tempdir.path().display()
-            ))
+        let protoc_path = std::env::var(PROST_PROTOC_ENV_VAR)?;
+        let output = Command::new(protoc_path)
+            .arg(&example_proto_path)
+            .arg(format!("--proto_path={}", tempdir.path().display()))
             .arg("--descriptor_set_out=/dev/null")
             .output()
             .unwrap();
@@ -378,6 +416,8 @@ message M {
             stdout.is_empty() && stderr.is_empty(),
             "expected no output from protoc\nstdout: {stdout}\n stderr: {stderr}\n"
         );
+
+        drop(reset_protoc_env_var);
 
         Ok(())
     }
@@ -411,14 +451,7 @@ message M {
         check_write_protoc(|destination| write_protoc_zip_data(destination, &zip_data));
     }
 
-    struct TempProtocResult {
-        tempdir: TempDir,
-        protoc_path: PathBuf,
-    }
-
-    fn check_write_protoc(
-        write_protoc_fn: impl Fn(&Path) -> Result<(), Error>,
-    ) -> TempProtocResult {
+    fn check_write_protoc(write_protoc_fn: impl Fn(&Path) -> Result<(), Error>) {
         let tempdir = tempfile::tempdir().unwrap();
         let protoc_zip_dir_path = tempdir.path().join("protoc_zip");
 
@@ -429,21 +462,13 @@ message M {
 
         // run protoc and make sure it "works"
         let protoc_path = protoc_zip_dir_path.join("bin").join("protoc");
-        let output = Command::new(&protoc_path)
-            .arg("--version")
-            .output()
-            .unwrap();
+        let output = Command::new(protoc_path).arg("--version").output().unwrap();
         let version_output = String::from_utf8_lossy(&output.stdout);
         let expected_end = format!("{LATEST_VERSION}\n");
         assert!(
             version_output.ends_with(&expected_end),
             "unexpected version output: {version_output}"
         );
-
-        TempProtocResult {
-            tempdir,
-            protoc_path,
-        }
     }
 
     #[test]
