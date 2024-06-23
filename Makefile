@@ -1,7 +1,8 @@
 all:
 	cargo test
 	cargo fmt
-	cargo clippy --all-targets
+	# disallow warnings so they fail CI
+	cargo clippy --all-targets -- -D warnings
 	cargo verify-project
 	cargo audit
 
