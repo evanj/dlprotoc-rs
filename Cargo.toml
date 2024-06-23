@@ -29,8 +29,8 @@ option-if-let-else =  { level = "allow", priority = 1 }
 multiple-crate-versions = { level = "allow", priority = 1 }
 
 [dependencies]
-# attempt to shrink dependencies a bit
-reqwest = { version = "0", features = ["blocking"] }
+# attempt to shrink dependencies
+reqwest = { version = "0", default-features = false, features = ["http2", "default-tls", "blocking"] }
 sha2 = { version = "0", default-features = false }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 hex-literal = "0"
