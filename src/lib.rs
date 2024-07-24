@@ -7,7 +7,7 @@ use zip::result::ZipError;
 use sha2::{Digest, Sha256};
 
 // The most recent version of protoc that we know about.
-const LATEST_VERSION: &str = "27.1";
+const LATEST_VERSION: &str = "27.2";
 
 // Cargo's build output environment variable. See:
 // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts
@@ -197,7 +197,7 @@ struct KnownVersion {
     hash: Sha256HashResult,
 }
 
-static KNOWN_VERSIONS: [KnownVersion; 8] = [
+const KNOWN_VERSIONS: [KnownVersion; 12] = [
     KnownVersion {
         os: OS::Linux,
         cpu: CPUArch::X86_64,
@@ -245,6 +245,30 @@ static KNOWN_VERSIONS: [KnownVersion; 8] = [
         cpu: CPUArch::X86_64,
         version: "27.1",
         hash: hex!("8520d944f3a3890fa296a3b3b0d4bb18337337e2526bbbf1b507eeea3c2a1ec4"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::AArch64,
+        version: "27.2",
+        hash: hex!("ff4760bd4ae510d533e528cc6deb8e32e53f383f0ec01b0327233b4c2e8db314"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::X86_64,
+        version: "27.2",
+        hash: hex!("4a95e0ea2e51720af86a92f48d4997c8756923a9d0c58fd8a850657cd7479caf"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::AArch64,
+        version: "27.2",
+        hash: hex!("877de17b5d2662b96e68a6e208cb1851437ab3e2b419c2ef5b7b873ffac5357d"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::X86_64,
+        version: "27.2",
+        hash: hex!("abc25a236571612d45eb4b6b6e6abe3ac9aecc34b195f76f248786844f5619c7"),
     },
 ];
 
