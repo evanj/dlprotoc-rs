@@ -56,3 +56,12 @@ This downloads pre-compiled executables on Github, which is somewhat dangerous. 
 4. Run `make` to execute all checks.
 5. Update the version in `Cargo.toml` to include the version of protoc. E.g. `"0.1.0+27.0"`.
 6. Send a pull request.
+
+
+## Releasing the crate (for maintainers)
+
+1. Test it: `make && cargo publish --dry-run`
+2. Publish to crates.io: `cargo publish`
+3. Tag the release: `(VERSION=$(cargo pkgid | sed 's/.*@//'); git tag -a "v$VERSION" -m "release version $VERSION")`
+4. Push the tag: `git push --tags`
+5. Create a release from the existing tag on Github: Go to [Tags](https://github.com/evanj/dlprotoc-rs/tags), click the "..." menu, choose Create Release.
