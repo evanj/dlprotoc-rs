@@ -36,4 +36,6 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 hex-literal = "0"
 
 [dev-dependencies]
+# prost-build needed to compile the crate doctest
+prost-build = { version = "0", default-features = false }
 tempfile = "3"

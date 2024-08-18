@@ -1,4 +1,30 @@
-//! Download protoc for Cargo build scripts.
+/*!
+Downloads protoc binaries for use in Cargo build scripts.
+
+This crate is intended to be used in Cargo build scripts (`build.rs`) with
+[`prost-build`](https://docs.rs/prost-build/latest/prost_build/) or
+[`tonic-build`](https://docs.rs/tonic-build/latest/tonic_build/), so you don't need `protoc`
+installed to build projects that use Protocol Buffers.
+
+# Usage
+
+Add the `dlprotoc` crate to `build-dependencies` in `Cargo.toml`:
+
+```toml
+[build-dependencies]
+dlprotoc = "0"
+```
+
+In `build.rs`, call [`download_protoc`] before calling `compile_protos`:
+
+```no_run
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dlprotoc::download_protoc()?;
+    prost_build::compile_protos(&["src/example.proto"], &["src/"])?;
+    Ok(())
+}
+```
+*/
 
 use hex_literal::hex;
 use std::{borrow::Borrow, fmt::Display, io::Cursor, path::Path};
@@ -124,6 +150,8 @@ fn make_url(os: OS, cpu: CPUArch, version: &str) -> String {
 }
 
 /// The Error type returned by the dlprotoc crate.
+///
+/// This type only contains a message, so it is not expected to be handled.
 #[derive(Debug)]
 pub struct Error {
     message: String,
@@ -172,7 +200,7 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-/// Downloads the protoc binary without verifying the hash. This should only be used by the dlprotoc
+/// Downloads protoc without verifying the hash. This should only be used by the dlprotoc
 /// crate, and by the `protochashes` tool.
 ///
 /// # Errors
@@ -319,16 +347,17 @@ fn write_protoc(destination_dir: &Path) -> Result<(), Error> {
     write_protoc_zip_data(destination_dir, &protoc_zip_bytes)
 }
 
-/// Downloads protoc binary to the `OUT_DIR` environment variable and sets the `PROTOC` environment
-/// variable so prost/tonic can find it. Intended to be used from a Cargo build script (`build.rs`).
+/// Downloads protoc to the `OUT_DIR` environment variable and sets the `PROTOC` environment
+/// variable so prost-build or tonic-build can find it. Intended to be used from a Cargo build
+/// script (`build.rs`).
 ///
 /// # Errors
 ///
-/// Returns an error if it fails to fetch protoc over the Internet, fails to verify it, or fails to
-/// unzip it.
+/// Returns an [`Error`] if it fails to fetch protoc over the Internet, fails to verify it, or
+/// fails to unzip it.
 pub fn download_protoc() -> Result<(), Error> {
-    let out_dir =
-        std::env::var(CARGO_BUILD_OUT_ENV_VAR).map_err(|e| Error::with_prefix("env", e))?;
+    let out_dir = std::env::var(CARGO_BUILD_OUT_ENV_VAR)
+        .map_err(|e| Error::with_prefix(format!("env var {CARGO_BUILD_OUT_ENV_VAR}"), e))?;
     let protoc_distribution_path = Path::new(&out_dir).join("protoc_zip");
     if protoc_distribution_path.exists() {
         print!("dlprotoc: not downloading; protoc already exists at {protoc_distribution_path:?}");
@@ -347,14 +376,6 @@ pub fn download_protoc() -> Result<(), Error> {
 fn write_protoc_zip_data(destination_dir: &Path, protoc_zip_bytes: &[u8]) -> Result<(), Error> {
     let mut zip = zip::ZipArchive::new(Cursor::new(&protoc_zip_bytes))?;
     zip.extract(destination_dir)?;
-    // let mut protoc_f = zip.by_name(PROTOC_ZIP_PATH)?;
-    // let mut protoc_bytes = Vec::new();
-    // protoc_f.read_to_end(&mut protoc_bytes)?;
-
-    // fs::write(destination_dir, &protoc_bytes)?;
-
-    // // make protoc executable
-    // fs::set_permissions(destination_dir, fs::Permissions::from_mode(0o755))?;
     Ok(())
 }
 
@@ -444,6 +465,16 @@ message M {
         drop(reset_protoc_env_var);
 
         Ok(())
+    }
+
+    /// Returns a helpful message when env vars not set.
+    #[test]
+    fn test_download_protoc_not_build_script() {
+        let err = download_protoc().expect_err("must return an error");
+        assert!(
+            err.to_string().contains("env var OUT_DIR"),
+            "download_protoc unexpected error message: {err}"
+        );
     }
 
     #[test]

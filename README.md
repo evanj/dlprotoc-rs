@@ -4,8 +4,8 @@
 [![Docs.rs Link](https://img.shields.io/docsrs/dlprotoc)](https://docs.rs/dlprotoc/latest/dlprotoc/)
 
 This crate downloads the
-[official binary releases of protoc from Google's protobuf Github repo](https://github.com/protocolbuffers/protobuf),
-verifies a SHA256 hash, then extracts it. It easy to use with Prost or Tonic.
+[official binary releases of `protoc` from Google's protobuf Github repo](https://github.com/protocolbuffers/protobuf),
+verifies a SHA256 hash, then extracts it. It is intended to be used in Cargo build scripts (`build.rs`) with Prost or Tonic, so you don't need to have `protoc` installed to build Rust projects that use Protocol Buffers.
 
 This fixes Cargo errors like the following:
 
@@ -18,12 +18,13 @@ Caused by:
   Error: Custom { kind: NotFound, error: "Could not find `protoc`. If `protoc` is installed, try setting the `PROTOC` environment variable to the path of the `protoc` binary. To install it on Debian, run `apt-get install protobuf-compiler`. It is also available at https://github.com/protocolbuffers/protobuf/releases  For more information: https://docs.rs/prost-build/#sourcing-protoc" }
 ```
 
-An alternative is the [protobuf-src crate](https://crates.io/crates/protobuf-src), which compiles protoc from source. Unfortunately, compiling protoc is quite slow (approximately 2 minutes on my 4 core Intel desktop from 2020), and has more dependencies. Notably: `protobuf-src` requires `cmake` and a C++ compiler.
+An alternative is the [protobuf-src crate](https://crates.io/crates/protobuf-src), which compiles protoc from source. Unfortunately, compiling protoc is quite slow (approximately 2 minutes on my 4 core Intel desktop from 2020), and requires `cmake` and a C++ compiler. This crate only requires Rust.
 
 
 ## Quick Start
 
-In your `build.rs`, call `dlprotoc::download_protoc()` before calling `compile_protos(...)`:
+Add `dlprotoc` to
+In `build.rs`, call `dlprotoc::download_protoc()` before calling `compile_protos(...)`:
 
 ```rust
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -40,12 +41,10 @@ For a complete example, see [protoc-cargo-example-rs](https://github.com/evanj/p
 
 This downloads pre-compiled executables on Github, which is somewhat dangerous. You need to trust:
 
-* The author of this crate (me! Evan Jones)
-  * I manually add SHA256 hashes for protoc releases, to allow them to be downloaded.
-  * I wrote this crate. Let's hope it is mostly free from bugs
-* Crates.io: To give you a non-malicious version of this crate.
-* Github: To provide the protoc binaries that Google uploaded.
-* Google Protobuf maintainers: To upload non-malicious protoc binaries to Github.
+* The SHA256 hashes embedded in the source code are for protoc binaries that are non-malicious. The hashes are from Google's Github releases.
+* The crate does not have bugs, and will not run protoc binaries that have not been seen before.
+* Crates.io: Must give you a non-malicious version of this crate.
+* Google Protobuf maintainers: Uploads non-malicious protoc binaries to Github.
 
 
 ## Updating to new protoc releases (for maintainers)
