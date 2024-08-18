@@ -32,8 +32,8 @@ use zip::result::ZipError;
 
 use sha2::{Digest, Sha256};
 
-// The most recent version of protoc that we know about.
-const LATEST_VERSION: &str = "27.2";
+/// The most recent version of protoc that we know about.
+const LATEST_VERSION: &str = KNOWN_VERSIONS[KNOWN_VERSIONS.len() - 1].version;
 
 // Cargo's build output environment variable. See:
 // https://doc.rust-lang.org/cargo/reference/environment-variables.html#environment-variables-cargo-sets-for-build-scripts
@@ -225,7 +225,8 @@ struct KnownVersion {
     hash: Sha256HashResult,
 }
 
-const KNOWN_VERSIONS: [KnownVersion; 12] = [
+/// All binary releases of protoc we know about. This is in increasing version number order.
+const KNOWN_VERSIONS: [KnownVersion; 16] = [
     KnownVersion {
         os: OS::Linux,
         cpu: CPUArch::X86_64,
@@ -297,6 +298,30 @@ const KNOWN_VERSIONS: [KnownVersion; 12] = [
         cpu: CPUArch::X86_64,
         version: "27.2",
         hash: hex!("abc25a236571612d45eb4b6b6e6abe3ac9aecc34b195f76f248786844f5619c7"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::AArch64,
+        version: "27.3",
+        hash: hex!("bdad36f3ad7472281d90568c4956ea2e203c216e0de005c6bd486f1920f2751c"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::X86_64,
+        version: "27.3",
+        hash: hex!("6dab2adab83f915126cab53540d48957c40e9e9023969c3e84d44bfb936c7741"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::AArch64,
+        version: "27.3",
+        hash: hex!("b22116bd97cdbd7ea25346abe635a9df268515fe5ef5afa93cd9a68fc2513f84"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::X86_64,
+        version: "27.3",
+        hash: hex!("ce282648fed0e7fbd6237d606dc9ec168dd2c1863889b04efa0b19c47da65d1b"),
     },
 ];
 
@@ -531,5 +556,20 @@ message M {
         // ensures we can use this error as a std Error
         let err: Box<dyn std::error::Error> = Box::new(Error::from_string(String::from("test")));
         assert_eq!("test", err.to_string());
+    }
+
+    #[test]
+    fn test_known_versions_constant() {
+        // check that KNOWN_VERSIONS is increasing
+        let mut last_version = KNOWN_VERSIONS[0].version;
+        for known_version in KNOWN_VERSIONS {
+            // This should be a semver comparsion, but is testing a string comparion.
+            // This will work with protoc versions since they are two digits, but can easily fail
+            // e.g. if there are a lot of point releases, because "27.10" should be greater than "27.9"
+            assert!(known_version.version >= last_version);
+            last_version = known_version.version;
+        }
+
+        assert_eq!(LATEST_VERSION, last_version);
     }
 }
