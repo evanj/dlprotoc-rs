@@ -2,7 +2,7 @@
 edition = "2021"
 name = "dlprotoc"
 # The version is the crate version + protoc version
-version = "0.3.2+27.3"
+version = "0.3.3+28.2"
 description = "Downloads protoc Protocol Buffers compiler for Cargo builds"
 homepage = "https://github.com/evanj/dlprotoc-rs"
 readme = "README.md"

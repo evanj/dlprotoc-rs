@@ -121,7 +121,7 @@ struct KnownVersion {
 pub const LATEST_VERSION: &str = KNOWN_VERSIONS[KNOWN_VERSIONS.len() - 1].version;
 
 pub fn known_hash(os: OS, cpu: CPUArch, version: &str) -> Result<Sha256HashResult, Error> {
-    for known in &KNOWN_VERSIONS {
+    for known in KNOWN_VERSIONS {
         if known.os == os && known.cpu == cpu && known.version == version {
             return Ok(known.hash);
         }
@@ -132,7 +132,7 @@ pub fn known_hash(os: OS, cpu: CPUArch, version: &str) -> Result<Sha256HashResul
 }
 
 /// All binary releases of protoc we know about. This is in increasing version number order.
-const KNOWN_VERSIONS: [KnownVersion; 16] = [
+const KNOWN_VERSIONS: &[KnownVersion] = &[
     KnownVersion {
         os: OS::Linux,
         cpu: CPUArch::X86_64,
@@ -228,6 +228,30 @@ const KNOWN_VERSIONS: [KnownVersion; 16] = [
         cpu: CPUArch::X86_64,
         version: "27.3",
         hash: hex!("ce282648fed0e7fbd6237d606dc9ec168dd2c1863889b04efa0b19c47da65d1b"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::AArch64,
+        version: "28.2",
+        hash: hex!("91d8253cdc0f0f0fc51c2b69c80677996632f525ad84504bfa5b4ee38ad3e49c"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::X86_64,
+        version: "28.2",
+        hash: hex!("2febfd42b59ce93a28eb789019a470a3dd0449619bc04f84dad1333da261dec1"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::AArch64,
+        version: "28.2",
+        hash: hex!("7bb048f52841789d9ec61983be0ce4c9e4fb3bd9a143462820ba9a3be0a03797"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::X86_64,
+        version: "28.2",
+        hash: hex!("232f07d12bf4806207a79ec2c7378301c52e6f2f7efdd21c0dd416f0bda103ec"),
     },
 ];
 
