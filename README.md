@@ -50,7 +50,7 @@ This downloads pre-compiled executables on Github, which is somewhat dangerous. 
 ## Updating to new protoc releases (for maintainers)
 
 1. Run: `cargo run -- (version e.g 27.0)`
-2. Append the printed struct definitions into the `KNOWN_VERSIONS` array in `lib.rs`.
+2. Append the printed struct definitions into the `KNOWN_VERSIONS` array in `versions.rs`.
 3. Run `make` to execute all checks.
 4. Update the version in `Cargo.toml` to include the version of protoc. E.g. `"0.1.0+27.0"`.
 5. Send a pull request.
