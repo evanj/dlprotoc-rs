@@ -200,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "dlprotoc"
-version = "0.3.3+28.2"
+version = "0.3.4+28.2"
 dependencies = [
  "hex-literal",
  "prost-build",
