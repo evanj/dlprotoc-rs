@@ -103,8 +103,9 @@ fn write_protoc(destination_dir: &Path) -> Result<(), Error> {
 }
 
 /// Downloads protoc to the `OUT_DIR` environment variable and sets the `PROTOC` environment
-/// variable so prost-build or tonic-build can find it. Intended to be used from a Cargo build
-/// script (`build.rs`).
+/// variable so prost-build or tonic-build can find it.
+///
+/// Intended to be called from a Cargo build script (`build.rs`).
 ///
 /// # Errors
 ///
