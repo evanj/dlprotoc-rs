@@ -169,7 +169,7 @@ mod tests {
         }
     }
 
-    impl<'a> Drop for SetEnvForTest<'a> {
+    impl Drop for SetEnvForTest<'_> {
         fn drop(&mut self) {
             match &self.previous {
                 Some(value) => std::env::set_var(self.name, value),
