@@ -32,7 +32,7 @@ use sha2::{Digest, Sha256};
 mod error;
 mod versions;
 
-use error::Error;
+pub use error::Error;
 
 pub type CPUArch = versions::CPUArch;
 pub type OS = versions::OS;

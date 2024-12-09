@@ -11,6 +11,7 @@ pub struct Error {
 }
 
 impl Error {
+    #[must_use]
     pub const fn from_string(message: String) -> Self {
         Self { message }
     }
