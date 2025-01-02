@@ -3,7 +3,7 @@ use hex_literal::hex;
 use std::fmt::Display;
 
 /// Operating system used to run protoc. The Display trait returns the string used for protoc URLs.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum OS {
     /// Linux: "linux" in protoc URLs.
     Linux,
@@ -57,7 +57,7 @@ impl Display for OS {
 }
 
 /// CPU architecture used to run protoc. The Display trait returns the string used for protoc URLs.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum CPUArch {
     /// ARM AArch64: "aarch64" in protoc URLs.
     #[allow(clippy::doc_markdown)]
@@ -144,18 +144,6 @@ const KNOWN_VERSIONS: &[KnownVersion] = &[
         cpu: CPUArch::AArch64,
         version: "27.0",
         hash: hex!("1e4b2d8b145afe99a36602f305165761e46d2525aa94cbb907e2e983be6717ac"),
-    },
-    KnownVersion {
-        os: OS::OSX,
-        cpu: CPUArch::X86_64,
-        version: "27.0",
-        hash: hex!("d956cf3a9e91a687aa4d1026e9261e5a587e4e0b545db0174509f6c448b8ce21"),
-    },
-    KnownVersion {
-        os: OS::OSX,
-        cpu: CPUArch::AArch64,
-        version: "27.0",
-        hash: hex!("2cf59e3e3463bede1f10b7517efdddd97a3bd8cfd9cacc286407b657290dc781"),
     },
     KnownVersion {
         os: OS::Linux,
@@ -281,6 +269,8 @@ const KNOWN_VERSIONS: &[KnownVersion] = &[
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     #[test]
@@ -291,7 +281,14 @@ mod tests {
 
     #[test]
     fn test_known_versions_constant() {
-        // check that KNOWN_VERSIONS is increasing
+        #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+        struct KnownVersionKey {
+            os: OS,
+            cpu: CPUArch,
+            version: String,
+        }
+        // check that KNOWN_VERSIONS is increasing and unique
+        let mut all_versions = HashSet::new();
         let mut last_version = KNOWN_VERSIONS[0].version;
         for known_version in KNOWN_VERSIONS {
             // This should be a semver comparsion, but is testing a string comparion.
@@ -299,6 +296,14 @@ mod tests {
             // e.g. if there are a lot of point releases, because "27.10" should be greater than "27.9"
             assert!(known_version.version >= last_version);
             last_version = known_version.version;
+
+            let key = KnownVersionKey {
+                os: known_version.os,
+                cpu: known_version.cpu,
+                version: known_version.version.to_string(),
+            };
+            let newly_inserted = all_versions.insert(key.clone());
+            assert!(newly_inserted, "duplicate version: {key:?}");
         }
 
         assert_eq!(LATEST_VERSION, last_version);
