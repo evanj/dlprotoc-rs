@@ -48,7 +48,9 @@ const PROST_PROTOC_ENV_VAR: &str = "PROTOC";
 
 /// Returns the URL to download the protoc release. The version is the format major.minor, such as "27.0".
 fn make_url(os: OS, cpu: CPUArch, version: &str) -> String {
-    format!("https://github.com/protocolbuffers/protobuf/releases/download/v{version}/protoc-{version}-{os}-{cpu}.zip")
+    format!(
+        "https://github.com/protocolbuffers/protobuf/releases/download/v{version}/protoc-{version}-{os}-{cpu}.zip"
+    )
 }
 
 /// Downloads protoc without verifying the hash. This should only be used by the dlprotoc
@@ -122,7 +124,9 @@ pub fn download_protoc() -> Result<(), Error> {
     }
 
     let protoc_path = protoc_distribution_path.join("bin").join("protoc");
-    std::env::set_var(PROST_PROTOC_ENV_VAR, protoc_path);
+    unsafe {
+        std::env::set_var(PROST_PROTOC_ENV_VAR, protoc_path);
+    }
 
     Ok(())
 }
@@ -138,7 +142,7 @@ fn write_protoc_zip_data(destination_dir: &Path, protoc_zip_bytes: &[u8]) -> Res
 #[cfg(test)]
 mod tests {
     use std::{ffi::OsStr, io::Write, process::Command};
-    use zip::{write::SimpleFileOptions, ZipWriter};
+    use zip::{ZipWriter, write::SimpleFileOptions};
 
     use super::*;
     use versions::LATEST_VERSION;
@@ -146,10 +150,16 @@ mod tests {
     #[test]
     fn test_make_url() {
         let url = make_url(OS::Linux, CPUArch::X86_64, "27.0");
-        assert_eq!(url, "https://github.com/protocolbuffers/protobuf/releases/download/v27.0/protoc-27.0-linux-x86_64.zip");
+        assert_eq!(
+            url,
+            "https://github.com/protocolbuffers/protobuf/releases/download/v27.0/protoc-27.0-linux-x86_64.zip"
+        );
 
         let url = make_url(OS::OSX, CPUArch::AArch64, "26.1");
-        assert_eq!(url, "https://github.com/protocolbuffers/protobuf/releases/download/v26.1/protoc-26.1-osx-aarch_64.zip");
+        assert_eq!(
+            url,
+            "https://github.com/protocolbuffers/protobuf/releases/download/v26.1/protoc-26.1-osx-aarch_64.zip"
+        );
     }
 
     struct SetEnvForTest<'a> {
@@ -164,16 +174,20 @@ mod tests {
                 Err(std::env::VarError::NotPresent) => None,
                 Err(e) => return Err(e),
             };
-            std::env::set_var(name, value);
+            unsafe {
+                std::env::set_var(name, value);
+            }
             Ok(Self { name, previous })
         }
     }
 
     impl Drop for SetEnvForTest<'_> {
         fn drop(&mut self) {
-            match &self.previous {
-                Some(value) => std::env::set_var(self.name, value),
-                None => std::env::remove_var(self.name),
+            unsafe {
+                match &self.previous {
+                    Some(value) => std::env::set_var(self.name, value),
+                    None => std::env::remove_var(self.name),
+                }
             }
         }
     }

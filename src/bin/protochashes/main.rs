@@ -1,6 +1,6 @@
 //! downloads a version of protoc and prints hashes for all OSes and CPU architectures.
 
-use dlprotoc::{download_unverified, protoc_hash, CPUArch, OS};
+use dlprotoc::{CPUArch, OS, download_unverified, protoc_hash};
 
 fn hex_string(bytes: &[u8]) -> String {
     let mut s = String::new();
