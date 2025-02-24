@@ -118,7 +118,10 @@ pub fn download_protoc() -> Result<(), Error> {
         .map_err(|e| Error::with_prefix(format!("env var {CARGO_BUILD_OUT_ENV_VAR}"), e))?;
     let protoc_distribution_path = Path::new(&out_dir).join("protoc_zip");
     if protoc_distribution_path.exists() {
-        print!("dlprotoc: not downloading; protoc already exists at {protoc_distribution_path:?}");
+        // TODO: version the download so updates are applied: Does Cargo solve this for us?
+        println!(
+            "dlprotoc: warning: not downloading; protoc already exists at {protoc_distribution_path:?}"
+        );
     } else {
         write_protoc(&protoc_distribution_path)?;
     }
