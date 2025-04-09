@@ -1,11 +1,13 @@
 //! downloads a version of protoc and prints hashes for all OSes and CPU architectures.
 
+use std::fmt::Write;
+
 use dlprotoc::{CPUArch, OS, download_unverified, protoc_hash};
 
 fn hex_string(bytes: &[u8]) -> String {
     let mut s = String::new();
     for byte in bytes {
-        s.push_str(&format!("{byte:02x}"));
+        write!(s, "{byte:02x}").unwrap();
     }
     s
 }
