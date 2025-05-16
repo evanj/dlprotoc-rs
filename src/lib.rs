@@ -120,7 +120,8 @@ pub fn download_protoc() -> Result<(), Error> {
     if protoc_distribution_path.exists() {
         // TODO: version the download so updates are applied: Does Cargo solve this for us?
         println!(
-            "dlprotoc: warning: not downloading; protoc already exists at {protoc_distribution_path:?}"
+            "dlprotoc: warning: not downloading; protoc already exists at {}",
+            protoc_distribution_path.display()
         );
     } else {
         write_protoc(&protoc_distribution_path)?;
