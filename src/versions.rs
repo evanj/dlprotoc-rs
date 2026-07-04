@@ -577,6 +577,30 @@ const KNOWN_VERSIONS: &[KnownVersion] = &[
         version: "35.0",
         hash: hex!("3580c2d115fccb5b0239960c8f70f8da14787b1973a46b2f39c315ad71c11e01"),
     },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::AArch64,
+        version: "35.1",
+        hash: hex!("01bf9d08808c7f96678b63f4bd8efa559bb4f83d5a7a270d5edaf507f9d5d9cf"),
+    },
+    KnownVersion {
+        os: OS::Linux,
+        cpu: CPUArch::X86_64,
+        version: "35.1",
+        hash: hex!("6930ebf62bd4ea607b98fff052596c6ee564b9835b4ce172c75a3f53ae9d91b7"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::AArch64,
+        version: "35.1",
+        hash: hex!("193289af0470c6a1aada357d4fba0bbf8d78bfaac8b5e42ca30af2ef75583de2"),
+    },
+    KnownVersion {
+        os: OS::OSX,
+        cpu: CPUArch::X86_64,
+        version: "35.1",
+        hash: hex!("537d73604a344ded6fc94e98e07e529d4fe3e4a0b09e59905353950fafc2a1f7"),
+    },
 ];
 
 #[cfg(test)]
