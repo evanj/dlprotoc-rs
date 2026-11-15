@@ -2,9 +2,8 @@
 edition = "2024"
 name = "dlprotoc"
 # The version is the crate version + protoc version
-version = "0.4.13+36.2"
+version = "0.4.14+36.2"
 description = "Downloads protoc Protocol Buffers compiler for Cargo builds"
-homepage = "https://github.com/evanj/dlprotoc-rs"
 readme = "README.md"
 keywords = [
     "protobuf",
@@ -25,6 +24,7 @@ nursery = "deny"
 pedantic = "deny"
 style = "deny"
 cargo = "deny"
+redundant_homepage = "deny"  
 option_if_let_else =  { level = "allow", priority = 1 }
 multiple_crate_versions = { level = "allow", priority = 1 }
 
